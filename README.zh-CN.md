@@ -1,6 +1,6 @@
 # 休息提醒 RestReminder
 
-[English →](README.md)
+[English →](README.md) · [**完整中文使用说明 →**](docs/使用说明.md)
 
 macOS 菜单栏小工具：工作满 **1 小时**，用**全屏遮盖 + 倒计时**叮嘱你休息 **5 分钟**；可以一键结束，也可以最小化到角落继续倒计时。
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-10-17
+
+- Add the full Chinese user manual (`docs/使用说明.md`), linked from both READMEs
+- Fix: the launch-at-login LaunchAgent file was still named after the old personal bundle id (`com.huage.restreminder.plist`); the file name now follows the bundle identifier, and old leftover agents are cleaned up automatically
+- `build.sh` version is now overridable (`VERSION=x.y.z ./build.sh release`)
+
 ## 1.0.0 — 2026-10-17
 
 First release.

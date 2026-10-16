@@ -10,7 +10,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PRODUCT="RestReminder"
-VERSION="1.0.0"
+VERSION="${VERSION:-1.0.1}"
 BUNDLE_ID="com.restreminder.app"
 MIN_MACOS="14.0"
 DIST="$DIR/dist"

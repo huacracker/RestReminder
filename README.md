@@ -4,7 +4,7 @@ A macOS menu bar app that makes you actually take a break: after every hour of w
 
 一个 macOS 菜单栏小工具：工作满一小时，用全屏遮盖 + 倒计时「叮嘱」你休息 5 分钟。可以一键结束，也可以最小化到角落继续倒计时。
 
-[中文说明 →](README.zh-CN.md)
+[中文说明 →](README.zh-CN.md) · [Full Chinese manual →](docs/使用说明.md)
 
 ![RestReminder full-screen break overlay](docs/cover.png)
 

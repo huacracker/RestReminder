@@ -812,8 +812,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 // MARK: - 开机自启（LaunchAgent）
 
 enum AutoStart {
-    static var plistPath: String { NSHomeDirectory() + "/Library/LaunchAgents/com.huage.restreminder.plist" }
     static var label: String { Bundle.main.bundleIdentifier ?? "com.restreminder.app" }
+    /// 文件名跟 Label 保持一致（launchctl 认 Label，文件名只是给人看的）
+    static var plistPath: String { NSHomeDirectory() + "/Library/LaunchAgents/\(label).plist" }
+    /// 早期版本用过的 label/文件名：启用或关闭时一并清掉，避免两个 job 各起一个实例
+    private static let legacyLabels = ["com.huage.restreminder"]
 
     static func set(enabled: Bool) -> Bool {
         guard let exec = Bundle.main.executablePath, Bundle.main.bundleIdentifier != nil else { return false }
@@ -822,6 +825,7 @@ enum AutoStart {
         try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
 
         unload()
+        cleanLegacy()
 
         if !enabled {
             try? fm.removeItem(atPath: plistPath)
@@ -868,7 +872,17 @@ enum AutoStart {
         return legacy.terminationStatus == 0
     }
 
-    private static func unload() {
+    private static func unload() { bootout(label: label) }
+
+    /// 清理旧版本遗留的 LaunchAgent 定义与文件
+    private static func cleanLegacy() {
+        for old in legacyLabels {
+            bootout(label: old)
+            try? FileManager.default.removeItem(atPath: NSHomeDirectory() + "/Library/LaunchAgents/\(old).plist")
+        }
+    }
+
+    private static func bootout(label: String) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/launchctl")
         p.arguments = ["bootout", "gui/\(getuid())/\(label)"]
