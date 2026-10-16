@@ -10,6 +10,65 @@ import UserNotifications
 
 setvbuf(stdout, nil, _IOLBF, 0)
 
+// MARK: - 多语言文案（系统首选语言为中文 → 中文界面，否则英文）
+
+enum L {
+    static let isChinese: Bool = {
+        let first = Locale.preferredLanguages.first ?? "en"
+        return first.hasPrefix("zh")
+    }()
+
+    static func s(_ zh: String, _ en: String) -> String { isChinese ? zh : en }
+
+    static var appName: String { s("休息提醒", "RestReminder") }
+    static var greeting: String { s("该休息了 ☕️", "Time to take a break ☕️") }
+    static var breakHint: String { s("站起来走动一下 · 看看远处 · 喝口水",
+                                     "Stand up · Look into the distance · Drink some water") }
+    static var breakTitle: String { s("休息中 ☕️", "Resting ☕️") }
+    static var breakSubtitle: String { s("把眼睛从屏幕上挪开一会儿", "Give your eyes a rest from the screen") }
+    static var finishButton: String { s("我休息好了", "I'm refreshed") }
+    static var minimizeButton: String { s("最小化", "Minimize") }
+    static var keyHint: String { s("ESC 结束休息　·　空格 最小化　·　倒计时结束自动关闭",
+                                   "ESC finish　·　Space minimize　·　Auto-closes when the timer ends") }
+    static func miniBreak(_ clock: String) -> String { s("☕️ 休息 \(clock)", "☕️ Break \(clock)") }
+
+    static var menuPaused: String { s("已暂停计时", "Paused") }
+    static func menuNextBreak(_ t: String) -> String { s("距离下次休息 \(t)", "Next break in \(t)") }
+    static func menuBreaking(_ t: String) -> String { s("休息中 \(t)", "On break \(t)") }
+    static var menuBreakNow: String { s("现在就去休息", "Take a break now") }
+    static var menuEndBreak: String { s("结束这次休息", "End this break") }
+    static var menuPause: String { s("暂停计时", "Pause timer") }
+    static var menuResume: String { s("继续计时", "Resume timer") }
+    static var menuReset: String { s("重新开始这一轮", "Restart this cycle") }
+    static var menuWorkInterval: String { s("工作间隔", "Work interval") }
+    static var menuBreakLength: String { s("休息时长", "Break length") }
+    static var menuAllScreens: String { s("遮盖所有屏幕", "Cover all screens") }
+    static var menuSound: String { s("提示音", "Sound") }
+    static var menuVoice: String { s("语音叮嘱", "Voice reminder") }
+    static var menuAutoStart: String { s("开机自动启动", "Launch at login") }
+    static var menuQuit: String { s("退出休息提醒", "Quit RestReminder") }
+
+    static func intervalLabel(_ m: Int) -> String {
+        switch m {
+        case 60: return s("1 小时", "1 hour")
+        case 90: return s("1.5 小时", "1.5 hours")
+        case 120: return s("2 小时", "2 hours")
+        default: return s("\(m) 分钟", "\(m) min")
+        }
+    }
+
+    static var notifyBreakTitle: String { s("该休息了 ☕️", "Time to take a break ☕️") }
+    static func notifyBreakBody(_ workMin: String, _ breakMin: String) -> String {
+        s("工作已满 \(workMin) 分钟，离开屏幕 \(breakMin) 分钟吧", "You've worked \(workMin). Step away from the screen for \(breakMin).")
+    }
+    static var notifyDoneTitle: String { s("休息结束 ✅", "Break is over ✅") }
+    static func notifyDoneBody(_ workMin: String) -> String {
+        s("回到工作状态，下次提醒 \(workMin) 后", "Back to work — next reminder in \(workMin).")
+    }
+    static var sayBreak: String { s("该休息了，站起来走动走动，看看远处", "Time to take a break. Stand up and look into the distance.") }
+    static var sayDone: String { s("休息结束，继续加油", "Break is over. Back to work.") }
+}
+
 // MARK: - 设置
 
 enum K {
@@ -56,6 +115,7 @@ enum Settings {
 // MARK: - 圆形进度环
 
 final class RingView: NSView {
+    /// 剩余比例 1 → 0（满环起步，随时间消退）
     var progress: CGFloat = -1 { didSet { if abs(progress - oldValue) > 0.001 { needsDisplay = true } } }
     let timeLabel = NSTextField(labelWithString: "5:00")
 
@@ -132,28 +192,28 @@ final class CoverView: NSView {
 
         if primary {
             ring.translatesAutoresizingMaskIntoConstraints = false
-            stack.addArrangedSubview(makeLabel("该休息了 ☕️", size: 34, weight: .bold, alpha: 1))
+            stack.addArrangedSubview(makeLabel(L.greeting, size: 34, weight: .bold, alpha: 1))
             stack.addArrangedSubview(ring)
-            stack.addArrangedSubview(makeLabel("站起来走动一下 · 看看远处 · 喝口水", size: 19, weight: .regular, alpha: 0.85))
+            stack.addArrangedSubview(makeLabel(L.breakHint, size: 19, weight: .regular, alpha: 0.85))
 
             let buttons = NSStackView()
             buttons.orientation = .horizontal
             buttons.spacing = 16
-            let finish = makeButton("我休息好了", bg: NSColor.white.withAlphaComponent(0.92), fg: NSColor.black, sel: #selector(finishTapped))
-            let mini = makeButton("最小化", bg: NSColor.white.withAlphaComponent(0.14), fg: NSColor.white, sel: #selector(minimizeTapped))
+            let finish = makeButton(L.finishButton, bg: NSColor.white.withAlphaComponent(0.92), fg: NSColor.black, sel: #selector(finishTapped))
+            let mini = makeButton(L.minimizeButton, bg: NSColor.white.withAlphaComponent(0.14), fg: NSColor.white, sel: #selector(minimizeTapped))
             buttons.addArrangedSubview(finish)
             buttons.addArrangedSubview(mini)
             stack.addArrangedSubview(buttons)
 
-            stack.addArrangedSubview(makeLabel("ESC 结束休息　·　空格 最小化　·　倒计时结束自动关闭", size: 13, weight: .regular, alpha: 0.55))
+            stack.addArrangedSubview(makeLabel(L.keyHint, size: 13, weight: .regular, alpha: 0.55))
 
             NSLayoutConstraint.activate([
                 ring.widthAnchor.constraint(equalToConstant: 260),
                 ring.heightAnchor.constraint(equalToConstant: 260),
             ])
         } else {
-            stack.addArrangedSubview(makeLabel("休息中 ☕️", size: 28, weight: .semibold, alpha: 0.9))
-            stack.addArrangedSubview(makeLabel("把眼睛从屏幕上挪开一会儿", size: 17, weight: .regular, alpha: 0.6))
+            stack.addArrangedSubview(makeLabel(L.breakTitle, size: 28, weight: .semibold, alpha: 0.9))
+            stack.addArrangedSubview(makeLabel(L.breakSubtitle, size: 17, weight: .regular, alpha: 0.6))
         }
 
         NSLayoutConstraint.activate([
@@ -253,7 +313,7 @@ final class CoverWindow: NSWindow {
             cover.ring.progress = progress
             cover.ring.timeLabel.stringValue = clockString(remaining)
         } else if let secondary = cover.subviews.compactMap({ $0 as? NSStackView }).first?.arrangedSubviews.compactMap({ $0 as? NSTextField }).first {
-            secondary.stringValue = "休息中 ☕️　\(clockString(remaining))"
+            secondary.stringValue = L.breakTitle + "　" + clockString(remaining)
         }
     }
 }
@@ -304,7 +364,7 @@ final class MiniWindow: NSPanel {
     @objc private func clicked() { onClick?() }
 
     func update(remaining: TimeInterval) {
-        label.stringValue = "☕️ 休息 \(clockString(remaining))"
+        label.stringValue = L.miniBreak(clockString(remaining))
     }
 
     var debugText: String { label.stringValue }
@@ -354,6 +414,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
         log("started work=\(workSeconds)s break=\(breakSeconds)s screens=\(NSScreen.screens.count)")
 
         if ud.bool(forKey: "selftest") { runSelfTest() }
+        if let shot = ud.string(forKey: "snapshot"), !shot.isEmpty {
+            runSnapshot(shot, mini: ud.bool(forKey: "snapshotMini"))
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -367,7 +430,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            if let img = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "休息提醒") {
+            if let img = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: L.appName) {
                 img.isTemplate = true
                 button.image = img
                 button.imagePosition = .imageLeading
@@ -416,7 +479,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
         updateStatusTitle()
         if phase == .breaking {
             let total = breakSeconds
-            let progress = total > 0 ? CGFloat(1 - left / total) : 1
+            let progress = total > 0 ? CGFloat(left / total) : 0
             for w in covers { w.apply(progress: progress, remaining: left) }
             mini?.update(remaining: left)
         }
@@ -455,7 +518,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
             let w = CoverWindow(screen: screen, primary: primary)
             w.onEscape = { [weak self] in self?.finishBreak(manual: true) }
             w.onSpace = { [weak self] in self?.minimizeBreak() }
-            w.apply(progress: 0, remaining: breakSeconds)
+            w.apply(progress: 1, remaining: breakSeconds)
             w.orderFrontRegardless()
             covers.append(w)
         }
@@ -513,13 +576,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
         if Settings.voice {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
-            p.arguments = breakStart
-                ? ["该休息了，站起来走动走动，看看远处"]
-                : ["休息结束，继续加油"]
+            p.arguments = breakStart ? [L.sayBreak] : [L.sayDone]
             try? p.run()
         }
-        notify(breakStart ? "该休息了 ☕️" : "休息结束 ✅",
-               breakStart ? "工作已满 \(Int(workSeconds / 60)) 分钟，请离开屏幕 5 分钟" : "回到工作状态，下次提醒 \(Int(Settings.workSeconds / 60)) 分钟后")
+        notify(breakStart ? L.notifyBreakTitle : L.notifyDoneTitle,
+               breakStart ? L.notifyBreakBody("\(Int(workSeconds / 60))", "\(Int(breakSeconds / 60))")
+                          : L.notifyDoneBody("\(Int(Settings.workSeconds / 60))"))
     }
 
     private func setupNotifications() {
@@ -568,64 +630,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
         let state: String
         if pausedRemaining != nil {
-            state = "已暂停计时"
+            state = L.menuPaused
         } else if phase == .working {
-            state = "距离下次休息 \(workString(currentRemaining()))"
+            state = L.menuNextBreak(workString(currentRemaining()))
         } else {
-            state = "休息中 \(clockString(currentRemaining()))"
+            state = L.menuBreaking(clockString(currentRemaining()))
         }
         let head = NSMenuItem(title: state, action: nil, keyEquivalent: "")
         head.isEnabled = false
         menu.addItem(head)
         menu.addItem(.separator())
 
-        menu.addItem(item(phase == .breaking ? "结束这次休息" : "现在就去休息", #selector(menuBreakNow)))
-        menu.addItem(item(pausedRemaining == nil ? "暂停计时" : "继续计时", #selector(menuTogglePause)))
-        menu.addItem(item("重新开始这一轮", #selector(menuReset)))
+        menu.addItem(item(phase == .breaking ? L.menuEndBreak : L.menuBreakNow, #selector(menuBreakNow)))
+        menu.addItem(item(pausedRemaining == nil ? L.menuPause : L.menuResume, #selector(menuTogglePause)))
+        menu.addItem(item(L.menuReset, #selector(menuReset)))
         menu.addItem(.separator())
 
         let workSub = NSMenu()
-        for (m, label) in [(15, "15 分钟"), (25, "25 分钟"), (30, "30 分钟"), (45, "45 分钟"), (50, "50 分钟"), (60, "1 小时"), (90, "1.5 小时"), (120, "2 小时")] {
-            let i = item(label, #selector(menuSetWork(_:)))
+        for m in [15, 25, 30, 45, 50, 60, 90, 120] {
+            let i = item(L.intervalLabel(m), #selector(menuSetWork(_:)))
             i.tag = m
             i.state = (Int(Settings.workSeconds / 60) == m) ? .on : .off
             workSub.addItem(i)
         }
-        let workItem = NSMenuItem(title: "工作间隔", action: nil, keyEquivalent: "")
+        let workItem = NSMenuItem(title: L.menuWorkInterval, action: nil, keyEquivalent: "")
         workItem.submenu = workSub
         menu.addItem(workItem)
 
         let restSub = NSMenu()
-        for (m, label) in [(3, "3 分钟"), (5, "5 分钟"), (10, "10 分钟"), (15, "15 分钟")] {
-            let i = item(label, #selector(menuSetRest(_:)))
+        for m in [3, 5, 10, 15] {
+            let i = item(L.intervalLabel(m), #selector(menuSetRest(_:)))
             i.tag = m
             i.state = (Int(Settings.breakSeconds / 60) == m) ? .on : .off
             restSub.addItem(i)
         }
-        let restItem = NSMenuItem(title: "休息时长", action: nil, keyEquivalent: "")
+        let restItem = NSMenuItem(title: L.menuBreakLength, action: nil, keyEquivalent: "")
         restItem.submenu = restSub
         menu.addItem(restItem)
 
         menu.addItem(.separator())
 
-        let allScreens = item("遮盖所有屏幕", #selector(menuToggleAllScreens))
+        let allScreens = item(L.menuAllScreens, #selector(menuToggleAllScreens))
         allScreens.state = Settings.coverAllScreens ? .on : .off
         menu.addItem(allScreens)
 
-        let sound = item("提示音", #selector(menuToggleSound))
+        let sound = item(L.menuSound, #selector(menuToggleSound))
         sound.state = Settings.sound ? .on : .off
         menu.addItem(sound)
 
-        let voice = item("语音叮嘱", #selector(menuToggleVoice))
+        let voice = item(L.menuVoice, #selector(menuToggleVoice))
         voice.state = Settings.voice ? .on : .off
         menu.addItem(voice)
 
-        let auto = item("开机自动启动", #selector(menuToggleAutoStart))
+        let auto = item(L.menuAutoStart, #selector(menuToggleAutoStart))
         auto.state = Settings.autoStart ? .on : .off
         menu.addItem(auto)
 
         menu.addItem(.separator())
-        menu.addItem(item("退出休息提醒", #selector(menuQuit), key: "q"))
+        menu.addItem(item(L.menuQuit, #selector(menuQuit), key: "q"))
     }
 
     private func item(_ title: String, _ action: Selector?, key: String = "") -> NSMenuItem {
@@ -690,6 +752,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
         NSApp.terminate(nil)
     }
 
+    // MARK: 截图（文档用，不需要屏幕录制权限：直接把视图渲染成 PNG）
+
+    private func runSnapshot(_ path: String, mini: Bool) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            self.beginBreak()
+            if mini { self.minimizeBreak() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if mini, let view = self.mini?.contentView {
+                    self.saveImage(view, to: path)
+                } else if let view = (self.covers.first(where: { $0.isPrimaryScreen }) ?? self.covers.first)?.contentView {
+                    self.saveImage(view, to: path)
+                } else {
+                    print("SNAPSHOT failed: no view")
+                }
+                exit(0)
+            }
+        }
+    }
+
+    private func saveImage(_ view: NSView, to path: String) {
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+            print("SNAPSHOT failed: no bitmap"); return
+        }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let data = rep.representation(using: .png, properties: [:]) else {
+            print("SNAPSHOT failed: no png data"); return
+        }
+        try? data.write(to: URL(fileURLWithPath: path))
+        print("SNAPSHOT \(path) \(rep.pixelsWide)x\(rep.pixelsHigh)")
+    }
+
     // MARK: 自检
 
     private func runSelfTest() {
@@ -720,7 +813,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
 enum AutoStart {
     static var plistPath: String { NSHomeDirectory() + "/Library/LaunchAgents/com.huage.restreminder.plist" }
-    static var label: String { "com.huage.restreminder" }
+    static var label: String { Bundle.main.bundleIdentifier ?? "com.restreminder.app" }
 
     static func set(enabled: Bool) -> Bool {
         guard let exec = Bundle.main.executablePath, Bundle.main.bundleIdentifier != nil else { return false }

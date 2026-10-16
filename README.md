@@ -1,65 +1,110 @@
-# 休息提醒 RestReminder
+# RestReminder · 休息提醒
 
-macOS 菜单栏小工具：**工作满 1 小时，全屏遮盖提醒你休息 5 分钟**（带倒计时），可一键关闭，也可最小化到角落继续倒计时。
+A macOS menu bar app that makes you actually take a break: after every hour of work it covers **all your screens** with a 5-minute countdown, then gets out of the way.
 
-原生 Swift + AppKit，无依赖、无网络、不收集任何数据。
+一个 macOS 菜单栏小工具：工作满一小时，用全屏遮盖 + 倒计时「叮嘱」你休息 5 分钟。可以一键结束，也可以最小化到角落继续倒计时。
 
-## 功能
+[中文说明 →](README.zh-CN.md)
 
-- **计时**：默认工作 60 分钟 → 休息 5 分钟，循环。菜单栏实时显示「距离下次休息 42m」/ 休息中「4:32」。
-- **全屏遮盖**：休息开始时盖住**所有屏幕**（主屏显示大字倒计时 + 进度环 + 「我休息好了 / 最小化」按钮，副屏只显示倒计时）。
-- **倒计时**：5 分钟走完自动关闭，回到工作计时；休息期间禁止显示器休眠。
-- **手动关闭**：点「我休息好了」，或按 `ESC`；也可在菜单里点「结束这次休息」。
-- **最小化**：点「最小化」或按 `空格` → 全屏遮盖收起，右下角留一个小悬浮条「☕️ 休息 4:32」，**点击即还原**全屏。悬浮条可拖动。
-- **提醒**：提示音 + 系统通知（可选语音叮嘱，用 `say` 念「该休息了，站起来走动走动，看看远处」）。
-- **菜单**：工作间隔 15/25/30/45/50/60/90/120 分钟、休息时长 3/5/10/15 分钟、遮盖所有屏幕、提示音、语音叮嘱、开机自动启动、暂停计时、重新开始这一轮、立即休息。
-- **开机自启**：菜单勾选即可（写入 `~/Library/LaunchAgents/com.huage.restreminder.plist`）。
+![RestReminder full-screen break overlay](docs/cover.png)
 
-> 不需要任何系统权限（无辅助功能/录屏/网络）。
+<p>
+<img src="docs/icon.png" alt="icon" width="112">
+<img src="docs/mini.png" alt="minimized countdown" width="224">
+</p>
 
-## 安装
+Native Swift + AppKit, ~900 lines, **no dependencies, no network, no data collection** — and it doesn't ask for a single system permission.
+
+## Features
+
+- **Work / break cycle** — 60 min work → 5 min break by default, both configurable from the menu (15/25/30/45/50/60/90/120 min work, 3/5/10/15 min break). Time left until the next break is always visible in the menu bar.
+- **Full-screen overlay on every display** — one borderless window per screen at screen-saver level: the main screen shows the big countdown ring and the buttons, secondary screens show a slim countdown.
+- **A countdown that ends itself** — when the 5 minutes are up the overlay closes and the next work cycle starts on its own. Display sleep is blocked while you're resting, so the overlay can't be missed.
+- **Close it early** — click *I'm refreshed*, or press `ESC` / `Return`.
+- **Minimize it** — click *Minimize* or press `Space`: the overlay collapses into a small draggable pill in the bottom-right corner (`☕️ Break 4:32`) that keeps counting down and brings the full overlay back when clicked. It's a non-activating panel, so it never steals keyboard focus while you keep typing.
+- **Reminders** — system sound, optional spoken reminder (via `say`), plus a notification.
+- **Launch at login** — one checkbox in the menu (it writes its own LaunchAgent).
+
+## Install
+
+### Option A — download the app
+
+Grab `RestReminder-1.0.0-macos-universal.dmg` (or `.zip`) from the [Releases](../../releases) page, drag the app into `Applications`, and open it.
+
+> **First launch may be blocked by Gatekeeper.** This app is ad-hoc signed and **not notarized** (notarization requires a paid Apple Developer account), so macOS may claim it "cannot be verified" or "is damaged". Fix it once with either:
+> - Right-click the app → **Open** → **Open**, or
+> - `xattr -dr com.apple.quarantine /Applications/RestReminder.app`
+>
+> Everything runs locally; nothing is downloaded or phoned home.
+
+### Option B — build from source
+
+Requires only the macOS Command Line Tools (`xcode-select --install`), **not** full Xcode.
 
 ```bash
-cd /Volumes/HuageAi-Code/Github/rest-reminder
-./build.sh
+git clone <this repo>
+cd RestReminder
+./build.sh          # build for your architecture, sign, install into ~/Applications
+./build.sh run      # ...and launch it
 ```
 
-编译 → 生成图标 → 签名 → 安装到 `~/Applications/休息提醒.app`（脚本会自动杀掉旧进程）。然后双击启动，菜单栏出现咖啡杯图标（无 Dock 图标）。
+Universal build plus dmg + zip (what the releases ship):
 
-启动命令：`open -a ~/Applications/休息提醒.app`
+```bash
+./build.sh release  # dist/RestReminder-1.0.0-macos-universal.{dmg,zip}
+```
 
-## 快捷键
+## Usage
 
-| 操作 | 键 |
+After launch there's **no Dock icon** — look for the ☕️ in the menu bar, showing the time until your next break.
+
+| Action | How |
 |---|---|
-| 结束休息 | `ESC` 或回车/按钮「我休息好了」 |
-| 最小化到角落 | `空格` 或按钮「最小化」 |
-| 还原全屏遮盖 | 点击右下角悬浮条 |
+| Finish the break early | *I'm refreshed* button, `ESC` or `Return` |
+| Minimize the overlay | *Minimize* button or `Space` |
+| Bring the overlay back | click the ☕️ pill in the bottom-right corner |
+| Take a break right now | menu → *Take a break now* |
+| Pause / resume the timer | menu → *Pause timer* |
+| Change the intervals | menu → *Work interval* / *Break length* |
+| Cover only the current screen | menu → uncheck *Cover all screens* |
+| Start with the Mac | menu → *Launch at login* |
 
-## 调试参数
+Settings live in `~/Library/Preferences/com.restreminder.app.plist`. The UI follows your system language (Chinese or English).
 
-命令行参数会覆盖设置（`NSArgumentDomain`，不写入配置）：
+## Debugging & self-test
+
+The app can drive its own UI, so you don't have to wait an hour to test it:
 
 ```bash
-# 自检：立刻弹一次遮盖 → 最小化 → 还原 → 结束，打印诊断后退出 0
-~/Applications/休息提醒.app/Contents/MacOS/RestReminder -selftest 1
+BIN=~/Applications/RestReminder.app/Contents/MacOS/RestReminder
 
-# 快速跑一轮：工作 6 秒、休息 12 秒
-~/Applications/休息提醒.app/Contents/MacOS/RestReminder -workMinutes 0.1 -breakMinutes 0.2
+# walk the whole flow (overlay → minimize → restore → finish) printing diagnostics, exit 0
+"$BIN" -selftest 1
+
+# run a real 6s work / 12s break cycle (arguments override settings, nothing is persisted)
+"$BIN" -workMinutes 0.1 -breakMinutes 0.2
+
+# render the overlay / the minimized pill to PNG — no screen-recording permission needed
+"$BIN" -snapshot /tmp/cover.png
+"$BIN" -snapshot /tmp/mini.png -snapshotMini 1
 ```
 
-## 文件结构
+## How it works
+
+- The overlay is a borderless `NSWindow` at `CGWindowLevelForKey(.screenSaverWindow)` with `.canJoinAllSpaces`, so it covers full-screen apps, all Spaces and every display. It overrides `canBecomeKey` back to `true` — a borderless window can't receive `ESC` / `Space` otherwise.
+- The minimized pill is an `NSPanel` with `.nonactivatingPanel`, so showing and updating it never takes keyboard focus.
+- Timing is derived from a `deadline` timestamp rather than accumulated ticks, so closing the lid or sleeping doesn't drift the schedule.
+- `-snapshot` renders the view tree to a bitmap with `cacheDisplay(in:to:)` instead of taking a screen capture, which keeps the feature permission-free.
+
+## Project layout
 
 ```
-Sources/main.swift        全部逻辑（菜单栏 / 计时状态机 / 遮盖窗口 / 悬浮条 / 自启）
-scripts/gen-icon.swift    用 SF Symbol 生成 App 图标 iconset
-build.sh                  编译 + 打包 + 签名 + 安装
-assets/icon-512.png       图标预览
+Sources/main.swift        everything: menu bar, timer state machine, overlay, pill, launch-at-login
+scripts/gen-icon.swift    renders the app icon (SF Symbol → iconset → icns)
+build.sh                  build / release (universal + dmg + zip) / run
+docs/                     screenshots used by the READMEs
 ```
 
-## 实现要点
+## License
 
-- 遮盖窗口用 `NSWindow` level = `screenSaverWindow` + `canJoinAllSpaces`，borderless 且 `canBecomeKey = true`（否则 ESC/空格收不到）。
-- 计时以 `deadline` 时间戳为准（不是累加 tick），合盖/休眠唤醒后时间仍准确。
-- 悬浮条用 `NSPanel`（`.nonactivatingPanel`），显示/更新时不抢键盘焦点。
-- 通知仅在 bundle 内调用 `UNUserNotificationCenter`（脱离 bundle 直接跑二进制会崩）。
+[MIT](LICENSE) © 2026 Huage
